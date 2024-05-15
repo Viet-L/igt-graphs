@@ -15,10 +15,11 @@ async function main() {
     for(let id = 1; id <= 6; id++) {
         participants_scores[id - 1] = get_score_proportion(participants_days[id - 1])
     }
-    console.log(participants_scores)
+    draw_tool_tip()
     for(let id = 1; id <= 6; id++) {
         draw_total_score(participants_scores[id - 1], id)
     }
+
 }
 
 async function load_participants() {
@@ -74,6 +75,17 @@ async function read_participant(id) {
     return value
 }
 
+function draw_tool_tip() {
+    // Append tooltip div to the document body
+    d3.select("body").append("div")
+        .attr("id", "tooltip")
+        .style("position", "absolute")
+        .style("opacity", 0)
+        .style("background-color", "lightgrey")
+        .style("margin", "5px"); // Customize the fill color of the circles
+}
+
+
 function draw_total_score(participant, id) {
     const width = window.innerHeight / 2;
     const height = 400;
@@ -122,7 +134,6 @@ function draw_total_score(participant, id) {
         .attr("r", 5) // Adjust the radius of the circles as needed
         .attr("fill", "steelblue")
         .on("mouseover", function(d, data) { // Add mouseover event handler
-            console.log("here" + data.value)
             const tooltip = d3.select("#tooltip"); // Select the tooltip div
             tooltip.style("opacity", 1) // Make the tooltip visible
                 .html(`Day ${data.index} with Value: ${data.value.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
@@ -133,14 +144,6 @@ function draw_total_score(participant, id) {
         .on("mouseout", function() { // Add mouseout event handler
             d3.select("#tooltip").style("opacity", 0).style("z-index", -1); // Hide the tooltip
         });
-
-    // Append tooltip div to the document body
-    d3.select("body").append("div")
-        .attr("id", "tooltip")
-        .style("position", "absolute")
-        .style("opacity", 0)
-        .style("background-color", "lightgrey")
-        .style("margin", "5px"); // Customize the fill color of the circles
     
     // Append title to the graph
     svg.append("text")

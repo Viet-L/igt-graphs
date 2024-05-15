@@ -12,8 +12,7 @@ async function main() {
         }
     })
     fill_participants_days(participants, participants_days)
-    console.log(participants_days)
-    console.log(participants)
+    console.log(get_score_proportion(participants_days[0]))
 }
 
 async function load_participants() {
@@ -30,10 +29,29 @@ function fill_participants_days(participants, participants_days) {
         let curr_participant = participants[i - 1]
         curr_participant.map((item) => {
             let curr_day = item.day
-            console.log(curr_day)
             participants_days[i - 1][curr_day].push(item)
         })
     }
+}
+
+//expect a participant with 14 days + GAV
+function get_score_proportion(participant) {
+    var score = new Array(15).fill(0)
+    for(let i = 0; i < score.length; i++) {
+        if(participant[i].length === 0) {
+            continue;
+        }
+        let curr_score = 0;
+        let curr_day = participant[i]
+        curr_day.map((item) => {
+            // if card draw is 0/1 or A/B, then it is negative
+            let value = item.card <= 1 ? -1 : 1
+            console.log(item.card + " " + value)
+            curr_score += value
+        })
+        score[i] = curr_score
+    }
+    return score
 }
 
 async function read_participant(id) {

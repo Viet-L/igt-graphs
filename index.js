@@ -5,7 +5,14 @@ main()
 
 async function main() {
     var participants = await load_participants()
-
+    var participants_days = Array.from(Array(6), () => [])
+    participants_days.forEach((participant) => {
+        for(let i = 0; i <= 14; i++) {
+            participant.push([])
+        }
+    })
+    fill_participants_days(participants, participants_days)
+    console.log(participants_days)
     console.log(participants)
 }
 
@@ -16,6 +23,17 @@ async function load_participants() {
         participants.push(curr_participant)
     }
     return participants
+}
+
+function fill_participants_days(participants, participants_days) {
+    for(let i = 1; i <= 6; i++) {
+        let curr_participant = participants[i - 1]
+        curr_participant.map((item) => {
+            let curr_day = item.day
+            console.log(curr_day)
+            participants_days[i - 1][curr_day].push(item)
+        })
+    }
 }
 
 async function read_participant(id) {

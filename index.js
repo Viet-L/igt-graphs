@@ -113,19 +113,19 @@ function draw_total_score(participant, id) {
 
     // Create circles for each participant
     svg.selectAll("circle")
-        .data(participant)
+        .data(participant.map((d, i) => ({value: d, index: i})))
         .enter()
-        .filter(d => d !== undefined) // Filter out undefined data points
+        .filter(d => d.value !== undefined) // Filter out undefined data points
         .append("circle")
-        .attr("cx", (d, i) => x(participant.indexOf(d))) // Use index i as x-coordinate
-        .attr("cy", d => y(d)) // Use participant value as y-coordinate
+        .attr("cx", d => x(d.index)) // Use index i as x-coordinate
+        .attr("cy", d => y(d.value)) // Use participant value as y-coordinate
         .attr("r", 5) // Adjust the radius of the circles as needed
         .attr("fill", "steelblue")
         .on("mouseover", function(d, data) { // Add mouseover event handler
-            console.log("here" + data)
+            console.log("here" + data.value)
             const tooltip = d3.select("#tooltip"); // Select the tooltip div
             tooltip.style("opacity", 1) // Make the tooltip visible
-                .html(`Day ${participant.indexOf(data)} with Value: ${data.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
+                .html(`Day ${data.index} with Value: ${data.value.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
                 .style("left", (d.pageX) + "px") // Position the tooltip next to the mouse cursor
                 .style("top", (d.pageY - 20) + "px")
                 .style("z-index", 1);

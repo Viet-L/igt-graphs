@@ -105,6 +105,21 @@ function hello_world() {
         .attr("transform", `translate(${marginLeft},0)`)
         .call(d3.axisLeft(y));
 
+    const svg2 = d3.create("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    // Add the x-axis.
+    svg2.append("g")
+        .attr("transform", `translate(0,${height - marginBottom})`)
+        .call(d3.axisBottom(x));
+
+    // Add the y-axis.
+    svg2.append("g")
+        .attr("transform", `translate(${marginLeft},0)`)
+        .call(d3.axisLeft(y));
+
     // Append the SVG element.
     container.append(svg.node());
+    container.append(svg2.node());
 }

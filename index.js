@@ -12,7 +12,11 @@ async function main() {
         }
     })
     fill_participants_days(participants, participants_days)
-    console.log(get_score_proportion(participants_days[0]))
+    var participants_scores = Array.from(Array(6), () => [])
+    for(let id = 1; id <= 6; id++) {
+        participants_scores[id - 1] = get_score_proportion(participants_days[id - 1])
+    }
+    console.log(participants_scores)
 }
 
 async function load_participants() {
@@ -46,9 +50,9 @@ function get_score_proportion(participant) {
         curr_day.map((item) => {
             // if card draw is 0/1 or A/B, then it is negative
             let value = item.card <= 1 ? -1 : 1
-            console.log(item.card + " " + value)
             curr_score += value
         })
+        curr_score /= participant[i].length
         score[i] = curr_score
     }
     return score

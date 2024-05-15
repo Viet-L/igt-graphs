@@ -1,6 +1,5 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
-// hello_world()
 main()
 
 async function main() {
@@ -17,6 +16,9 @@ async function main() {
         participants_scores[id - 1] = get_score_proportion(participants_days[id - 1])
     }
     console.log(participants_scores)
+    for(let id = 1; id <= 6; id++) {
+        draw_total_score(participants_scores[id - 1], id)
+    }
 }
 
 async function load_participants() {
@@ -43,6 +45,7 @@ function get_score_proportion(participant) {
     var score = new Array(15).fill(0)
     for(let i = 0; i < score.length; i++) {
         if(participant[i].length === 0) {
+            score[i] = undefined
             continue;
         }
         let curr_score = 0;
@@ -71,55 +74,95 @@ async function read_participant(id) {
     return value
 }
 
-function hello_world() {
-    // Declare the chart dimensions and margins.
-    const width = 640;
+function draw_total_score(participant, id) {
+    const width = window.innerHeight / 2;
     const height = 400;
-    const marginTop = 20;
+    const marginTop = 40;
     const marginRight = 20;
     const marginBottom = 30;
     const marginLeft = 40;
 
-    // Declare the x (horizontal position) scale.
-    const x = d3.scaleUtc()
-        .domain([new Date("2023-01-01"), new Date("2024-01-01")])
+    const x = d3.scaleLinear()
+        .domain([0, 14])
         .range([marginLeft, width - marginRight]);
 
-    // Declare the y (vertical position) scale.
     const y = d3.scaleLinear()
-        .domain([0, 100])
+        .domain([-1, 1])
         .range([height - marginBottom, marginTop]);
 
-    // Create the SVG container.
     const svg = d3.create("svg")
         .attr("width", width)
         .attr("height", height);
 
-    // Add the x-axis.
     svg.append("g")
         .attr("transform", `translate(0,${height - marginBottom})`)
-        .call(d3.axisBottom(x));
+        .call(d3.axisBottom(x).ticks(14))
 
-    // Add the y-axis.
     svg.append("g")
         .attr("transform", `translate(${marginLeft},0)`)
         .call(d3.axisLeft(y));
 
-    const svg2 = d3.create("svg")
-        .attr("width", width)
-        .attr("height", height);
+    // Append guideline at y = 0
+    svg.append("line")
+        .attr("x1", marginLeft)
+        .attr("y1", y(0))
+        .attr("x2", width - marginRight)
+        .attr("y2", y(0))
+        .attr("stroke", "red")
+        .attr("stroke-dasharray", "4"); // Optional: add dashed line style
 
-    // Add the x-axis.
-    svg2.append("g")
-        .attr("transform", `translate(0,${height - marginBottom})`)
-        .call(d3.axisBottom(x));
+    // Create circles for each participant
+    svg.selectAll("circle")
+        .data(participant)
+        .enter()
+        .filter(d => d !== undefined) // Filter out undefined data points
+        .append("circle")
+        .attr("cx", (d, i) => x(participant.indexOf(d))) // Use index i as x-coordinate
+        .attr("cy", d => y(d)) // Use participant value as y-coordinate
+        .attr("r", 5) // Adjust the radius of the circles as needed
+        .attr("fill", "steelblue")
+        .on("mouseover", function(d, data) { // Add mouseover event handler
+            console.log("here" + data)
+            const tooltip = d3.select("#tooltip"); // Select the tooltip div
+            tooltip.style("opacity", 1) // Make the tooltip visible
+                .html(`Day ${participant.indexOf(data)} with Value: ${data.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
+                .style("left", (d.pageX) + "px") // Position the tooltip next to the mouse cursor
+                .style("top", (d.pageY - 20) + "px");
+        })
+        .on("mouseout", function() { // Add mouseout event handler
+            d3.select("#tooltip").style("opacity", 0); // Hide the tooltip
+        });
 
-    // Add the y-axis.
-    svg2.append("g")
-        .attr("transform", `translate(${marginLeft},0)`)
-        .call(d3.axisLeft(y));
-
-    // Append the SVG element.
+    // Append tooltip div to the document body
+    d3.select("body").append("div")
+        .attr("id", "tooltip")
+        .style("position", "absolute")
+        .style("opacity", 0)
+        .style("background-color", "lightgrey")
+        .style("margin", "5px"); // Customize the fill color of the circles
+    
+    // Append title to the graph
+    svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", marginTop / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "20px")
+        .text(`Participant ${id} Score`);
+    
     container.append(svg.node());
-    container.append(svg2.node());
+
+}
+
+var acc = document.getElementsByClassName("accordion");
+
+for (let i = 0; i < acc.length; i++) {
+  acc[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    var panel = this.nextElementSibling;
+    if (panel.style.maxHeight) {
+      panel.style.maxHeight = null;
+    } else {
+      panel.style.maxHeight = panel.scrollHeight + "px";
+    }
+  });
 }

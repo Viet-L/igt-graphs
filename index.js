@@ -127,10 +127,11 @@ function draw_total_score(participant, id) {
             tooltip.style("opacity", 1) // Make the tooltip visible
                 .html(`Day ${participant.indexOf(data)} with Value: ${data.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
                 .style("left", (d.pageX) + "px") // Position the tooltip next to the mouse cursor
-                .style("top", (d.pageY - 20) + "px");
+                .style("top", (d.pageY - 20) + "px")
+                .style("z-index", 1);
         })
         .on("mouseout", function() { // Add mouseout event handler
-            d3.select("#tooltip").style("opacity", 0); // Hide the tooltip
+            d3.select("#tooltip").style("opacity", 0).style("z-index", -1); // Hide the tooltip
         });
 
     // Append tooltip div to the document body

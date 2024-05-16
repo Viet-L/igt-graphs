@@ -28,6 +28,7 @@ async function main() {
         draw_total_score(participants_scores[id - 1], id)
         draw_total_proportion(participants_proportion[id - 1], id)
         draw_group_proportion(participants_proportion_group[id - 1], id)
+        draw_group_rt(participants_rt_group[id - 1], id)
     }
 
 }
@@ -169,7 +170,6 @@ function get_rt_group(participant) {
             rt[i].push(curr)
         }
     }
-    console.log(rt)
     return rt
 }
 
@@ -418,7 +418,6 @@ function draw_group_proportion(participant, id) {
             if(arr != undefined) {
                 dayData = []
                 arr.forEach((block, index) => {
-                    let blockData = []
                     if(block != undefined) {
                         block.value.forEach((value, groupIndex) => {
                             dayData.push({
@@ -428,7 +427,6 @@ function draw_group_proportion(participant, id) {
                             });
                         })
                     }
-                    // dayData.push(blockData)
                 });
             }
             convertedData.push(dayData)
@@ -564,6 +562,172 @@ function draw_day_proportion(data, id, day) {
             break
         case 6:
             container_pro_6.append(svg.node());
+            break
+        default:
+            console.error("Wrong ID", id)
+    }
+}
+
+function draw_group_rt(participant, id) {
+    const max_rt_day = new Array(15).fill(0)
+     // Convert original data to new format
+     function convertData(originalData) {
+        const convertedData = [];
+        originalData.forEach((arr, day) => {
+            let dayData = undefined
+            if(arr != undefined) {
+                dayData = []
+                let max_rt = 0
+                arr.forEach((block, index) => {
+                    // if(block != undefined) {
+                    //     block.value.forEach((value, groupIndex) => {
+                    //     })
+                    // }
+                    dayData.push({
+                        x: index, // Adjust x values as needed
+                        y: block.value, // Adjust y values as needed
+                    });
+                    max_rt = Math.max(max_rt, block.value)
+                });
+                max_rt_day[day] = max_rt
+            }
+            convertedData.push(dayData)
+        });
+        return convertedData;
+    }
+    // Convert original data to new format
+    const data = convertData(participant);
+    console.log(data)
+    for(let i = 0; i < 15; i++) {
+        draw_day_rt(data[i], id, i, max_rt_day[i])
+    }
+}
+
+function draw_day_rt(data, id, day, max_rt) {
+    if(data === undefined) {
+        data = []
+    }
+    const width = window.innerHeight / 2;
+    const height = 400;
+    const marginTop = 40;
+    const marginRight = 20;
+    const marginBottom = 30;
+    const marginLeft = 40;
+    const block_count = data.length - 1
+    const x = d3.scaleLinear()
+        .domain([0, block_count])
+        .range([marginLeft, width - marginRight]);
+
+    const y = d3.scaleLinear()
+        .domain([0, max_rt + 1000])
+        .range([height - marginBottom, marginTop]);
+    
+    var z = d3.scaleOrdinal()
+        .range(["steelblue", "green", "pink", "orange"]);
+
+    const svg = d3.create("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    svg.append("g")
+        .attr("transform", `translate(0,${height - marginBottom})`)
+        .call(d3.axisBottom(x).ticks(block_count))
+
+    svg.append("g")
+        .attr("transform", `translate(${marginLeft},0)`)
+        .call(d3.axisLeft(y));
+
+    // Append guideline at y = 0
+    svg.append("line")
+        .attr("x1", marginLeft)
+        .attr("y1", y(0))
+        .attr("x2", width - marginRight)
+        .attr("y2", y(0))
+        .attr("stroke", "red")
+        .attr("stroke-dasharray", "4"); // Optional: add dashed line style
+
+     // Create curved lines between circles
+    const line = d3.line()
+        .x((d, i) => x(d.x))
+        .y(d => y(d.y));
+    svg.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-width", 2)
+        .attr("d", line);
+        
+    // Create circles for each participant
+    svg.selectAll("circle")
+        .data(data.map((d, i) => ({value: d.y, index: d.x})))
+        .enter()
+        .filter(d => d.value !== undefined) // Filter out undefined data points
+        .append("circle")
+        .attr("cx", d => x(d.index)) // Use index i as x-coordinate
+        .attr("cy", d => y(d.value)) // Use participant value as y-coordinate
+        .attr("r", 5) // Adjust the radius of the circles as needed
+        .attr("fill", "steelblue")
+        .attr("fill-opacity", 0.8)
+        .on("mouseover", function(d, data) { // Add mouseover event handler
+            const tooltip = d3.select("#tooltip"); // Select the tooltip div
+            
+            const deck = group_map[data.group]
+            tooltip.style("opacity", .9) // Make the tooltip visible
+                .html(`Block ${data.index} Deck ${deck} with Value: ${data.value.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
+                .style("left", (d.pageX) + "px") // Position the tooltip next to the mouse cursor
+                .style("top", (d.pageY - 20) + "px")
+                .style("z-index", 1);
+        })
+        .on("mouseout", function() { // Add mouseout event handler
+            d3.select("#tooltip").style("opacity", 0).style("z-index", -1); // Hide the tooltip
+        });
+
+    var legend = svg.append("g")
+        .attr("font-family", "sans-serif")
+        .attr("font-size", 10)
+        .attr("text-anchor", "end")
+      .selectAll("g")
+      .data(["A", "B", "C", "D"].slice())
+      .enter().append("g")
+        .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+  
+    legend.append("rect")
+        .attr("x", width - 19)
+        .attr("width", 19)
+        .attr("height", 19)
+        .attr("fill", z);
+  
+    legend.append("text")
+        .attr("x", width - 24)
+        .attr("y", 9.5)
+        .attr("dy", "0.32em")
+        .text(function(d) { return d; });
+
+    // Append title to the graph
+    svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", marginTop / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "20px")
+        .text(`Participant ${id} Day ${day} Deck Proportion`);
+    switch(id) {
+        case 1:
+            container_rt_1.append(svg.node());
+            break
+        case 2:
+            container_rt_2.append(svg.node());
+            break
+        case 3:
+            container_rt_3.append(svg.node());
+            break
+        case 4:
+            container_rt_4.append(svg.node());
+            break
+        case 5:
+            container_rt_5.append(svg.node());
+            break
+        case 6:
+            container_rt_6.append(svg.node());
             break
         default:
             console.error("Wrong ID", id)

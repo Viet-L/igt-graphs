@@ -3,6 +3,12 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 main()
 const GROUP_AMOUNT = 20
 const MAX_THRESH_RT = 5 * 1000
+const width = window.innerHeight / 2;
+const height = 400;
+const marginTop = 40;
+const marginRight = 20;
+const marginBottom = 30;
+const marginLeft = 40;
 
 async function main() {
     var participants = await load_participants()
@@ -17,11 +23,13 @@ async function main() {
     var participants_proportion = Array.from(Array(6), () => [])
     var participants_proportion_group = Array.from(Array(6), () => [])
     var participants_rt_group = Array.from(Array(6), () => [])
+    var participant_entropy_group = Array.from(Array(6), () => [])
     for(let id = 1; id <= 6; id++) {
         participants_scores[id - 1] = get_score_proportion(participants_days[id - 1])
         participants_proportion[id - 1] = get_choice_proportion(participants_days[id - 1])
         participants_proportion_group[id - 1] = get_choice_proportion_group(participants_days[id - 1])
         participants_rt_group[id - 1] = get_rt_group(participants_days[id - 1])
+        participant_entropy_group[id - 1] = get_entropy_group(participants_days[id - 1])
     }
     draw_tool_tip()
     for(let id = 1; id <= 6; id++) {
@@ -29,6 +37,7 @@ async function main() {
         draw_total_proportion(participants_proportion[id - 1], id)
         draw_group_proportion(participants_proportion_group[id - 1], id)
         draw_group_rt(participants_rt_group[id - 1], id)
+        draw_group_entropy(participant_entropy_group[id - 1], id)
     }
 
 }
@@ -173,6 +182,41 @@ function get_rt_group(participant) {
     return rt
 }
 
+//expect a participant with 14 days + GAV
+function get_entropy_group(participant) {
+    var entropy = Array.from(Array(15), () => [])
+    for(let i = 0; i < entropy.length; i++) {
+        if(participant[i].length === 0) {
+            entropy[i] = undefined
+            continue;
+        }
+        let curr_day = participant[i]
+        for(let block = 0; block <= curr_day.length/GROUP_AMOUNT; block++) {
+            let end = Math.min((block + 1) * GROUP_AMOUNT, curr_day.length)
+            let curr_block_i = block * GROUP_AMOUNT
+            if(curr_block_i == end) continue
+            let curr = {
+                value: [0, 0, 0, 0],
+                count: 0
+            }
+            for(let curr_block_i = block * GROUP_AMOUNT; curr_block_i < end; curr_block_i++) {
+                curr.value[Math.floor(curr_day[curr_block_i].card)]++
+                curr.count++
+            }
+            let curr_entropy = 0
+            curr.value.forEach((val, j) => {
+                if(val !== 0) {
+                    curr_entropy += val/curr.count * Math.log(val/curr.count)/Math.log(4)
+                    
+                }
+            })
+            
+            entropy[i].push(curr_entropy * -1)
+        }
+    }
+    return entropy
+}
+
 function draw_tool_tip() {
     // Append tooltip div to the document body
     d3.select("body").append("div")
@@ -203,12 +247,6 @@ function draw_total_score(participant, id) {
 
     // Convert original data to new format
     const data = convertData(participant);
-    const width = window.innerHeight / 2;
-    const height = 400;
-    const marginTop = 40;
-    const marginRight = 20;
-    const marginBottom = 30;
-    const marginLeft = 40;
 
     const x = d3.scaleLinear()
         .domain([0, 14])
@@ -306,13 +344,6 @@ function draw_total_proportion(participant, id) {
     const data = convertData(participant);
     var z = d3.scaleOrdinal()
     .range(["steelblue", "green", "pink", "orange"]);
-
-    const width = window.innerHeight / 2;
-    const height = 400;
-    const marginTop = 40;
-    const marginRight = 20;
-    const marginBottom = 30;
-    const marginLeft = 40;
 
     const x = d3.scaleLinear()
         .domain([0, 14])
@@ -444,12 +475,6 @@ function draw_day_proportion(data, id, day) {
     if(data === undefined) {
         data = []
     }
-    const width = window.innerHeight / 2;
-    const height = 400;
-    const marginTop = 40;
-    const marginRight = 20;
-    const marginBottom = 30;
-    const marginLeft = 40;
     const block_count = Math.max(Math.ceil(data.length/4) - 1, 0)
     const x = d3.scaleLinear()
         .domain([0, block_count])
@@ -597,7 +622,6 @@ function draw_group_rt(participant, id) {
     }
     // Convert original data to new format
     const data = convertData(participant);
-    console.log(data)
     for(let i = 0; i < 15; i++) {
         draw_day_rt(data[i], id, i, max_rt_day[i])
     }
@@ -607,12 +631,6 @@ function draw_day_rt(data, id, day, max_rt) {
     if(data === undefined) {
         data = []
     }
-    const width = window.innerHeight / 2;
-    const height = 400;
-    const marginTop = 40;
-    const marginRight = 20;
-    const marginBottom = 30;
-    const marginLeft = 40;
     const block_count = data.length - 1
     const x = d3.scaleLinear()
         .domain([0, block_count])
@@ -717,6 +735,130 @@ function draw_day_rt(data, id, day, max_rt) {
             break
         case 6:
             container_rt_6.append(svg.node());
+            break
+        default:
+            console.error("Wrong ID", id)
+    }
+}
+
+function draw_group_entropy(participant, id) {
+    const max_rt_day = new Array(15).fill(0)
+     // Convert original data to new format
+     function convertData(originalData) {
+        const convertedData = [];
+        originalData.forEach((arr, day) => {
+            let dayData = undefined
+            if(arr != undefined) {
+                dayData = []
+                let max_rt = 0
+                arr.forEach((block, index) => {
+                    dayData.push({
+                        x: index, // Adjust x values as needed
+                        y: block, // Adjust y values as needed
+                    });
+                    max_rt = Math.max(max_rt, block.value)
+                });
+                max_rt_day[day] = max_rt
+            }
+            convertedData.push(dayData)
+        });
+        return convertedData;
+    }
+    // Convert original data to new format
+    const data = convertData(participant);
+    console.log(data)
+    for(let i = 0; i < 15; i++) {
+        draw_day_entropy(data[i], id, i, max_rt_day[i])
+    }
+}
+
+function draw_day_entropy(data, id, day) {
+    if(data === undefined) {
+        data = []
+    }
+    const block_count = data.length - 1
+    const x = d3.scaleLinear()
+        .domain([0, block_count])
+        .range([marginLeft, width - marginRight]);
+
+    const y = d3.scaleLinear()
+        .domain([0, 1])
+        .range([height - marginBottom, marginTop]);
+    
+    var z = d3.scaleOrdinal()
+        .range(["steelblue", "green", "pink", "orange"]);
+
+    const svg = d3.create("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    svg.append("g")
+        .attr("transform", `translate(0,${height - marginBottom})`)
+        .call(d3.axisBottom(x).ticks(block_count))
+
+    svg.append("g")
+        .attr("transform", `translate(${marginLeft},0)`)
+        .call(d3.axisLeft(y));
+
+     // Create curved lines between circles
+    const line = d3.line()
+        .x((d, i) => x(d.x))
+        .y(d => y(d.y));
+    svg.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-width", 2)
+        .attr("d", line);
+        
+    // Create circles for each participant
+    svg.selectAll("circle")
+        .data(data.map((d, i) => ({value: d.y, index: d.x})))
+        .enter()
+        .filter(d => d.value !== undefined) // Filter out undefined data points
+        .append("circle")
+        .attr("cx", d => x(d.index)) // Use index i as x-coordinate
+        .attr("cy", d => y(d.value)) // Use participant value as y-coordinate
+        .attr("r", 5) // Adjust the radius of the circles as needed
+        .attr("fill", "steelblue")
+        .attr("fill-opacity", 0.8)
+        .on("mouseover", function(d, data) { // Add mouseover event handler
+            const tooltip = d3.select("#tooltip"); // Select the tooltip div
+            tooltip.style("opacity", .9) // Make the tooltip visible
+                .html(`Block ${data.index} with Entropy Value: ${data.value.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
+                .style("left", (d.pageX) + "px") // Position the tooltip next to the mouse cursor
+                .style("top", (d.pageY - 20) + "px")
+                .style("z-index", 1);
+        })
+        .on("mouseout", function() { // Add mouseout event handler
+            d3.select("#tooltip").style("opacity", 0).style("z-index", -1); // Hide the tooltip
+        });
+
+    // Append title to the graph
+    svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", marginTop / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "20px")
+        .text(`Participant ${id} Day ${day} Deck Proportion`);
+    switch(id) {
+        case 1:
+            container_switch_1.append(svg.node());
+            break
+        case 2:
+            container_switch_2.append(svg.node());
+            break
+        case 3:
+            container_switch_3.append(svg.node());
+            break
+        case 4:
+            container_switch_4.append(svg.node());
+            break
+        case 5:
+            container_switch_5.append(svg.node());
+            break
+        case 6:
+            container_switch_6.append(svg.node());
             break
         default:
             console.error("Wrong ID", id)

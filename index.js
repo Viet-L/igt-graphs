@@ -114,21 +114,21 @@ function get_choice_proportion_group(participant) {
             continue;
         }
         let curr_day = participant[i]
-        for(let block = 0; block <= curr_day.length/20; block++) {
-            let end = Math.min((block + 1) * 20, curr_day.length)
-            let curr_block_i = block * 20
+        for(let block = 0; block <= curr_day.length/GROUP_AMOUNT; block++) {
+            let end = Math.min((block + 1) * GROUP_AMOUNT, curr_day.length)
+            let curr_block_i = block * GROUP_AMOUNT
             if(curr_block_i == end) continue
             let curr = {
                 value: [0, 0, 0, 0],
                 count: 0
             }
-            for(let curr_block_i = block * 20; curr_block_i < end; curr_block_i++) {
+            for(let curr_block_i = block * GROUP_AMOUNT; curr_block_i < end; curr_block_i++) {
                 curr.value[Math.floor(curr_day[curr_block_i].card)]++
                 curr.count++
             }
-            // curr.forEach((val, j) => {
-            //     curr[j] = val/count
-            // })
+            curr.value.forEach((val, j) => {
+                curr.value[j] = val/curr.count
+            })
             
             choice[i].push(curr)
         }
@@ -384,14 +384,14 @@ function draw_group_proportion(participant, id) {
                     let blockData = []
                     if(block != undefined) {
                         block.value.forEach((value, groupIndex) => {
-                            blockData.push({
+                            dayData.push({
                                 x: index, // Adjust x values as needed
                                 y: value, // Adjust y values as needed
                                 group: groupIndex + 1,
                             });
                         })
                     }
-                    dayData.push(blockData)
+                    // dayData.push(blockData)
                 });
             }
             convertedData.push(dayData)
@@ -400,9 +400,137 @@ function draw_group_proportion(participant, id) {
     }
     // Convert original data to new format
     const data = convertData(participant);
-    var z = d3.scaleOrdinal()
-    .range(["steelblue", "green", "pink", "orange"]);
+    for(let i = 0; i < 15; i++) {
+        draw_day_proportion(data[i], id, i)
+    }
+}
 
+function draw_day_proportion(data, id, day) {
+    if(data === undefined) {
+        data = []
+    }
+    const width = window.innerHeight / 2;
+    const height = 400;
+    const marginTop = 40;
+    const marginRight = 20;
+    const marginBottom = 30;
+    const marginLeft = 40;
+    const block_count = Math.max(Math.ceil(data.length/4) - 1, 0)
+    const x = d3.scaleLinear()
+        .domain([0, block_count])
+        .range([marginLeft, width - marginRight]);
+
+    const y = d3.scaleLinear()
+        .domain([0, 1])
+        .range([height - marginBottom, marginTop]);
+    
+    var z = d3.scaleOrdinal()
+        .range(["steelblue", "green", "pink", "orange"]);
+
+    const svg = d3.create("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    svg.append("g")
+        .attr("transform", `translate(0,${height - marginBottom})`)
+        .call(d3.axisBottom(x).ticks(block_count))
+
+    svg.append("g")
+        .attr("transform", `translate(${marginLeft},0)`)
+        .call(d3.axisLeft(y));
+
+    // Create lines between points of the same group
+    const line = d3.line()
+        .x(d => x(d.x))
+        .y(d => y(d.y));
+        // .curve(d3.curveCardinal.tension(1));
+
+    for (let i = 1; i <= 4; i++) {
+        const groupData = data.filter(d => d.group === i);
+        svg.append("path")
+            .datum(groupData)
+            .attr("fill", "none")
+            .attr("stroke", z(i))
+            .attr("stroke-width", 2)
+            .attr("d", line)
+            .attr("fill-opacity", 0.5);
+    }
+    const group_map = {1: "A", 2: "B", 3: "C", 4: "D"}
+    // Create circles for each participant
+    svg.selectAll("circle")
+        .data(data.map((d, i) => ({value: d.y, index: d.x, group: d.group})))
+        .enter()
+        .filter(d => d.value !== undefined) // Filter out undefined data points
+        .append("circle")
+        .attr("cx", d => x(d.index)) // Use index i as x-coordinate
+        .attr("cy", d => y(d.value)) // Use participant value as y-coordinate
+        .attr("r", 5) // Adjust the radius of the circles as needed
+        .attr("fill", d => z(d.group))
+        .attr("fill-opacity", 0.8)
+        .on("mouseover", function(d, data) { // Add mouseover event handler
+            const tooltip = d3.select("#tooltip"); // Select the tooltip div
+            
+            const deck = group_map[data.group]
+            tooltip.style("opacity", .9) // Make the tooltip visible
+                .html(`Day ${data.index} Deck ${deck} with Value: ${data.value.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
+                .style("left", (d.pageX) + "px") // Position the tooltip next to the mouse cursor
+                .style("top", (d.pageY - 20) + "px")
+                .style("z-index", 1);
+        })
+        .on("mouseout", function() { // Add mouseout event handler
+            d3.select("#tooltip").style("opacity", 0).style("z-index", -1); // Hide the tooltip
+        });
+
+    var legend = svg.append("g")
+        .attr("font-family", "sans-serif")
+        .attr("font-size", 10)
+        .attr("text-anchor", "end")
+      .selectAll("g")
+      .data(["A", "B", "C", "D"].slice())
+      .enter().append("g")
+        .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+  
+    legend.append("rect")
+        .attr("x", width - 19)
+        .attr("width", 19)
+        .attr("height", 19)
+        .attr("fill", z);
+  
+    legend.append("text")
+        .attr("x", width - 24)
+        .attr("y", 9.5)
+        .attr("dy", "0.32em")
+        .text(function(d) { return d; });
+
+    // Append title to the graph
+    svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", marginTop / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "20px")
+        .text(`Participant ${id} Day ${day} Deck Proportion`);
+    switch(id) {
+        case 1:
+            container_pro_1.append(svg.node());
+            break
+        case 2:
+            container_pro_2.append(svg.node());
+            break
+        case 3:
+            container_pro_3.append(svg.node());
+            break
+        case 4:
+            container_pro_4.append(svg.node());
+            break
+        case 5:
+            container_pro_5.append(svg.node());
+            break
+        case 6:
+            container_pro_6.append(svg.node());
+            break
+        default:
+            console.error("Wrong ID", id)
+    }
 }
 
 var acc = document.getElementsByClassName("accordion");

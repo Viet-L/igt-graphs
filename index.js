@@ -637,15 +637,6 @@ function draw_day_rt(data, id, day, max_rt) {
         .attr("transform", `translate(${marginLeft},0)`)
         .call(d3.axisLeft(y));
 
-    // Append guideline at y = 0
-    svg.append("line")
-        .attr("x1", marginLeft)
-        .attr("y1", y(0))
-        .attr("x2", width - marginRight)
-        .attr("y2", y(0))
-        .attr("stroke", "red")
-        .attr("stroke-dasharray", "4"); // Optional: add dashed line style
-
      // Create curved lines between circles
     const line = d3.line()
         .x((d, i) => x(d.x))
@@ -670,10 +661,8 @@ function draw_day_rt(data, id, day, max_rt) {
         .attr("fill-opacity", 0.8)
         .on("mouseover", function(d, data) { // Add mouseover event handler
             const tooltip = d3.select("#tooltip"); // Select the tooltip div
-            
-            const deck = group_map[data.group]
             tooltip.style("opacity", .9) // Make the tooltip visible
-                .html(`Block ${data.index} Deck ${deck} with Value: ${data.value.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
+                .html(`Block ${data.index} with Value: ${data.value.toFixed(2)} ms`) // Set the content of the tooltip to be the value of the data point
                 .style("left", (d.pageX) + "px") // Position the tooltip next to the mouse cursor
                 .style("top", (d.pageY - 20) + "px")
                 .style("z-index", 1);

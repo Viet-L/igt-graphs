@@ -12,12 +12,15 @@ async function main() {
     })
     fill_participants_days(participants, participants_days)
     var participants_scores = Array.from(Array(6), () => [])
+    var participants_proportion = Array.from(Array(6), () => [])
     for(let id = 1; id <= 6; id++) {
         participants_scores[id - 1] = get_score_proportion(participants_days[id - 1])
+        participants_proportion[id - 1] = get_choice_proportion(participants_days[id - 1])
     }
     draw_tool_tip()
     for(let id = 1; id <= 6; id++) {
         draw_total_score(participants_scores[id - 1], id)
+        draw_total_proportion(participants_proportion[id - 1], id)
     }
 
 }
@@ -62,6 +65,29 @@ function get_score_proportion(participant) {
     return score
 }
 
+//expect a participant with 14 days + GAV
+function get_choice_proportion(participant) {
+    var choice = Array.from(Array(15), () => [])
+    for(let i = 0; i < choice.length; i++) {
+        if(participant[i].length === 0) {
+            choice[i] = undefined
+            continue;
+        }
+        let curr = [0, 0, 0, 0]
+        let curr_day = participant[i]
+        curr_day.map((item) => {
+            // if card draw is 0/1 or A/B, then it is negative
+            let value = item.card
+            curr[Math.floor(value)]++
+        })
+        curr.forEach((val, j) => {
+            curr[j] = val/participant[i].length
+        })
+        choice[i] = curr
+    }
+    return choice
+}
+
 async function read_participant(id) {
     var file = "data/participant_" + id + ".csv"
     var value = await d3.csv(file, (data) => {
@@ -82,11 +108,30 @@ function draw_tool_tip() {
         .style("position", "absolute")
         .style("opacity", 0)
         .style("background-color", "lightgrey")
-        .style("margin", "5px"); // Customize the fill color of the circles
+        .style("margin", "5px")
+        .style("padding", "3px"); // Customize the fill color of the circles
 }
 
 
 function draw_total_score(participant, id) {
+    // Convert original data to new format
+    function convertData(originalData) {
+        const convertedData = [];
+        originalData.forEach((value, index) => {
+            if(value != undefined) {
+                convertedData.push({
+                    x: index, // Adjust x values as needed
+                    y: value, // Adjust y values as needed
+                    
+                });
+            }
+        });
+        return convertedData;
+    }
+
+    // Convert original data to new format
+    const data = convertData(participant);
+    console.log(data)
     const width = window.innerHeight / 2;
     const height = 400;
     const marginTop = 40;
@@ -123,6 +168,17 @@ function draw_total_score(participant, id) {
         .attr("stroke", "red")
         .attr("stroke-dasharray", "4"); // Optional: add dashed line style
 
+     // Create curved lines between circles
+    const line = d3.line()
+        .x((d, i) => x(d.x))
+        .y(d => y(d.y));
+    svg.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-width", 2)
+        .attr("d", line);
+
     // Create circles for each participant
     svg.selectAll("circle")
         .data(participant.map((d, i) => ({value: d, index: i})))
@@ -135,7 +191,7 @@ function draw_total_score(participant, id) {
         .attr("fill", "steelblue")
         .on("mouseover", function(d, data) { // Add mouseover event handler
             const tooltip = d3.select("#tooltip"); // Select the tooltip div
-            tooltip.style("opacity", 1) // Make the tooltip visible
+            tooltip.style("opacity", .9) // Make the tooltip visible
                 .html(`Day ${data.index} with Value: ${data.value.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
                 .style("left", (d.pageX) + "px") // Position the tooltip next to the mouse cursor
                 .style("top", (d.pageY - 20) + "px")
@@ -155,6 +211,130 @@ function draw_total_score(participant, id) {
     
     container.append(svg.node());
 
+}
+
+function draw_total_proportion(participant, id) {
+    // Convert original data to new format
+    function convertData(originalData) {
+        const convertedData = [];
+        originalData.forEach((arr, index) => {
+            if(arr != undefined) {
+                arr.forEach((value, groupIndex) => {
+                    convertedData.push({
+                        x: index, // Adjust x values as needed
+                        y: value, // Adjust y values as needed
+                        group: groupIndex + 1
+                    });
+                });
+            }
+        });
+        return convertedData;
+    }
+
+    // Convert original data to new format
+    const data = convertData(participant);
+    var z = d3.scaleOrdinal()
+    .range(["steelblue", "green", "pink", "orange"]);
+
+    const width = window.innerHeight / 2;
+    const height = 400;
+    const marginTop = 40;
+    const marginRight = 20;
+    const marginBottom = 30;
+    const marginLeft = 40;
+
+    const x = d3.scaleLinear()
+        .domain([0, 14])
+        .range([marginLeft, width - marginRight]);
+
+    const y = d3.scaleLinear()
+        .domain([0, 1])
+        .range([height - marginBottom, marginTop]);
+
+    const svg = d3.create("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    svg.append("g")
+        .attr("transform", `translate(0,${height - marginBottom})`)
+        .call(d3.axisBottom(x).ticks(14))
+
+    svg.append("g")
+        .attr("transform", `translate(${marginLeft},0)`)
+        .call(d3.axisLeft(y));
+
+    // Create lines between points of the same group
+    const line = d3.line()
+        .x(d => x(d.x))
+        .y(d => y(d.y));
+        // .curve(d3.curveCardinal.tension(1));
+
+    for (let i = 1; i <= 4; i++) {
+        const groupData = data.filter(d => d.group === i);
+        svg.append("path")
+            .datum(groupData)
+            .attr("fill", "none")
+            .attr("stroke", z(i))
+            .attr("stroke-width", 2)
+            .attr("d", line)
+            .attr("fill-opacity", 0.5);
+    }
+    const group_map = {1: "A", 2: "B", 3: "C", 4: "D"}
+    // Create circles for each participant
+    svg.selectAll("circle")
+        .data(data.map((d, i) => ({value: d.y, index: d.x, group: d.group})))
+        .enter()
+        .filter(d => d.value !== undefined) // Filter out undefined data points
+        .append("circle")
+        .attr("cx", d => x(d.index)) // Use index i as x-coordinate
+        .attr("cy", d => y(d.value)) // Use participant value as y-coordinate
+        .attr("r", 5) // Adjust the radius of the circles as needed
+        .attr("fill", d => z(d.group))
+        .attr("fill-opacity", 0.8)
+        .on("mouseover", function(d, data) { // Add mouseover event handler
+            const tooltip = d3.select("#tooltip"); // Select the tooltip div
+            
+            const deck = group_map[data.group]
+            tooltip.style("opacity", .9) // Make the tooltip visible
+                .html(`Day ${data.index} Deck ${deck} with Value: ${data.value.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
+                .style("left", (d.pageX) + "px") // Position the tooltip next to the mouse cursor
+                .style("top", (d.pageY - 20) + "px")
+                .style("z-index", 1);
+        })
+        .on("mouseout", function() { // Add mouseout event handler
+            d3.select("#tooltip").style("opacity", 0).style("z-index", -1); // Hide the tooltip
+        });
+
+    var legend = svg.append("g")
+        .attr("font-family", "sans-serif")
+        .attr("font-size", 10)
+        .attr("text-anchor", "end")
+      .selectAll("g")
+      .data(["A", "B", "C", "D"].slice())
+      .enter().append("g")
+        .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+  
+    legend.append("rect")
+        .attr("x", width - 19)
+        .attr("width", 19)
+        .attr("height", 19)
+        .attr("fill", z);
+  
+    legend.append("text")
+        .attr("x", width - 24)
+        .attr("y", 9.5)
+        .attr("dy", "0.32em")
+        .text(function(d) { return d; });
+
+    // Append title to the graph
+    svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", marginTop / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "20px")
+        .text(`Participant ${id} Deck Proportion`);
+
+    container2.append(svg.node());
 }
 
 var acc = document.getElementsByClassName("accordion");

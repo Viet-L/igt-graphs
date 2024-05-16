@@ -3,12 +3,12 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 main()
 const GROUP_AMOUNT = 20
 const MAX_THRESH_RT = 5 * 1000
-const width = window.innerHeight / 2;
-const height = 400;
+const height = 350;
 const marginTop = 40;
 const marginRight = 20;
 const marginBottom = 30;
 const marginLeft = 40;
+const width = window.innerWidth / 4 - marginLeft;
 
 async function main() {
     var participants = await load_participants()

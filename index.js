@@ -689,34 +689,13 @@ function draw_day_rt(data, id, day, max_rt) {
             d3.select("#tooltip").style("opacity", 0).style("z-index", -1); // Hide the tooltip
         });
 
-    var legend = svg.append("g")
-        .attr("font-family", "sans-serif")
-        .attr("font-size", 10)
-        .attr("text-anchor", "end")
-      .selectAll("g")
-      .data(["A", "B", "C", "D"].slice())
-      .enter().append("g")
-        .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
-  
-    legend.append("rect")
-        .attr("x", width - 19)
-        .attr("width", 19)
-        .attr("height", 19)
-        .attr("fill", z);
-  
-    legend.append("text")
-        .attr("x", width - 24)
-        .attr("y", 9.5)
-        .attr("dy", "0.32em")
-        .text(function(d) { return d; });
-
     // Append title to the graph
     svg.append("text")
         .attr("x", width / 2)
         .attr("y", marginTop / 2)
         .attr("text-anchor", "middle")
         .style("font-size", "20px")
-        .text(`Participant ${id} Day ${day} Deck Proportion`);
+        .text(`Participant ${id} Day ${day} Reaction Time`);
     switch(id) {
         case 1:
             container_rt_1.append(svg.node());
@@ -840,7 +819,7 @@ function draw_day_entropy(data, id, day) {
         .attr("y", marginTop / 2)
         .attr("text-anchor", "middle")
         .style("font-size", "20px")
-        .text(`Participant ${id} Day ${day} Deck Proportion`);
+        .text(`Participant ${id} Day ${day} Entropy/Switch`);
     switch(id) {
         case 1:
             container_switch_1.append(svg.node());

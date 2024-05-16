@@ -1,6 +1,7 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 main()
+const GROUP_AMOUNT = 20
 
 async function main() {
     var participants = await load_participants()
@@ -13,9 +14,11 @@ async function main() {
     fill_participants_days(participants, participants_days)
     var participants_scores = Array.from(Array(6), () => [])
     var participants_proportion = Array.from(Array(6), () => [])
+    var participants_proportion_group = Array.from(Array(6), () => [])
     for(let id = 1; id <= 6; id++) {
         participants_scores[id - 1] = get_score_proportion(participants_days[id - 1])
         participants_proportion[id - 1] = get_choice_proportion(participants_days[id - 1])
+        participants_proportion_group[id - 1] = get_choice_proportion_group(participants_days[id - 1])
     }
     draw_tool_tip()
     for(let id = 1; id <= 6; id++) {
@@ -101,6 +104,35 @@ async function read_participant(id) {
     return value
 }
 
+//expect a participant with 14 days + GAV
+function get_choice_proportion_group(participant) {
+    var choice = Array.from(Array(15), () => [])
+    for(let i = 0; i < choice.length; i++) {
+        if(participant[i].length === 0) {
+            choice[i] = undefined
+            continue;
+        }
+        let curr_day = participant[i]
+        for(let block = 0; block <= curr_day.length/20; block++) {
+            let end = Math.min((block + 1) * 20, curr_day.length)
+            let curr = {
+                value: [0, 0, 0, 0],
+                count: 0
+            }
+            for(let curr_block_i = block * 20; curr_block_i < end; curr_block_i++) {
+                curr.value[Math.floor(curr_day[curr_block_i].card)]++
+                curr.count++
+            }
+            // curr.forEach((val, j) => {
+            //     curr[j] = val/count
+            // })
+            
+            choice[i].push(curr)
+            
+        }
+    }
+}
+
 function draw_tool_tip() {
     // Append tooltip div to the document body
     d3.select("body").append("div")
@@ -131,7 +163,6 @@ function draw_total_score(participant, id) {
 
     // Convert original data to new format
     const data = convertData(participant);
-    console.log(data)
     const width = window.innerHeight / 2;
     const height = 400;
     const marginTop = 40;

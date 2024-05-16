@@ -2,6 +2,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 main()
 const GROUP_AMOUNT = 20
+const MAX_THRESH_RT = 5 * 1000
 
 async function main() {
     var participants = await load_participants()
@@ -15,10 +16,12 @@ async function main() {
     var participants_scores = Array.from(Array(6), () => [])
     var participants_proportion = Array.from(Array(6), () => [])
     var participants_proportion_group = Array.from(Array(6), () => [])
+    var participants_rt_group = Array.from(Array(6), () => [])
     for(let id = 1; id <= 6; id++) {
         participants_scores[id - 1] = get_score_proportion(participants_days[id - 1])
         participants_proportion[id - 1] = get_choice_proportion(participants_days[id - 1])
         participants_proportion_group[id - 1] = get_choice_proportion_group(participants_days[id - 1])
+        participants_rt_group[id - 1] = get_rt_group(participants_days[id - 1])
     }
     draw_tool_tip()
     for(let id = 1; id <= 6; id++) {
@@ -134,6 +137,40 @@ function get_choice_proportion_group(participant) {
         }
     }
     return choice
+}
+
+//expect a participant with 14 days + GAV
+function get_rt_group(participant) {
+    var rt = Array.from(Array(15), () => [])
+    for(let i = 0; i < rt.length; i++) {
+        if(participant[i].length === 0) {
+            rt[i] = undefined
+            continue;
+        }
+        let curr_day = participant[i]
+        for(let block = 0; block <= curr_day.length/GROUP_AMOUNT; block++) {
+            let end = Math.min((block + 1) * GROUP_AMOUNT, curr_day.length)
+            let curr_block_i = block * GROUP_AMOUNT
+            if(curr_block_i == end) continue
+            let curr = {
+                value: 0,
+                count: 0
+            }
+            for(let curr_block_i = block * GROUP_AMOUNT; curr_block_i < end; curr_block_i++) {
+                let rt = parseFloat(curr_day[curr_block_i].rt)
+                if(rt <= MAX_THRESH_RT) {
+                    curr.value += rt
+                    curr.count++
+                }
+            }
+
+            curr.value /= curr.count
+            
+            rt[i].push(curr)
+        }
+    }
+    console.log(rt)
+    return rt
 }
 
 function draw_tool_tip() {
@@ -472,7 +509,7 @@ function draw_day_proportion(data, id, day) {
             
             const deck = group_map[data.group]
             tooltip.style("opacity", .9) // Make the tooltip visible
-                .html(`Day ${data.index} Deck ${deck} with Value: ${data.value.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
+                .html(`Block ${data.index} Deck ${deck} with Value: ${data.value.toFixed(2)}`) // Set the content of the tooltip to be the value of the data point
                 .style("left", (d.pageX) + "px") // Position the tooltip next to the mouse cursor
                 .style("top", (d.pageY - 20) + "px")
                 .style("z-index", 1);

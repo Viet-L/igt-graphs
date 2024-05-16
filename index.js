@@ -372,8 +372,37 @@ function draw_total_proportion(participant, id) {
 }
 
 function draw_group_proportion(participant, id) {
-    //for loop?
-    console.log(participant)
+
+    // Convert original data to new format
+    function convertData(originalData) {
+        const convertedData = [];
+        originalData.forEach((arr, day) => {
+            let dayData = undefined
+            if(arr != undefined) {
+                dayData = []
+                arr.forEach((block, index) => {
+                    let blockData = []
+                    if(block != undefined) {
+                        block.value.forEach((value, groupIndex) => {
+                            blockData.push({
+                                x: index, // Adjust x values as needed
+                                y: value, // Adjust y values as needed
+                                group: groupIndex + 1,
+                            });
+                        })
+                    }
+                    dayData.push(blockData)
+                });
+            }
+            convertedData.push(dayData)
+        });
+        return convertedData;
+    }
+    // Convert original data to new format
+    const data = convertData(participant);
+    var z = d3.scaleOrdinal()
+    .range(["steelblue", "green", "pink", "orange"]);
+
 }
 
 var acc = document.getElementsByClassName("accordion");

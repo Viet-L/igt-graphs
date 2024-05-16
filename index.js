@@ -24,6 +24,7 @@ async function main() {
     for(let id = 1; id <= 6; id++) {
         draw_total_score(participants_scores[id - 1], id)
         draw_total_proportion(participants_proportion[id - 1], id)
+        draw_group_proportion(participants_proportion_group[id - 1], id)
     }
 
 }
@@ -115,6 +116,8 @@ function get_choice_proportion_group(participant) {
         let curr_day = participant[i]
         for(let block = 0; block <= curr_day.length/20; block++) {
             let end = Math.min((block + 1) * 20, curr_day.length)
+            let curr_block_i = block * 20
+            if(curr_block_i == end) continue
             let curr = {
                 value: [0, 0, 0, 0],
                 count: 0
@@ -128,9 +131,9 @@ function get_choice_proportion_group(participant) {
             // })
             
             choice[i].push(curr)
-            
         }
     }
+    return choice
 }
 
 function draw_tool_tip() {
@@ -366,6 +369,11 @@ function draw_total_proportion(participant, id) {
         .text(`Participant ${id} Deck Proportion`);
 
     container2.append(svg.node());
+}
+
+function draw_group_proportion(participant, id) {
+    //for loop?
+    console.log(participant)
 }
 
 var acc = document.getElementsByClassName("accordion");

@@ -24,6 +24,7 @@ background-color: #aaa;
 .panel {
 padding: 0 18px;
 max-height: 0;
+display: inline;
 overflow: hidden;
 transition: max-height 0.4s ease-out;
 }

@@ -13,7 +13,7 @@ UNHASHABLE_COLUMNS = ["failed_images", "failed_audio", "failed_video", "view_his
 def __main__():
     print("hello world")
     data = {}
-    with open("cognitive-games-a282b-default-rtdb-igt-export.json", "rb") as f:
+    with open("data/cognitive-games-a282b-default-rtdb-igt-export.json", "rb") as f:
         data = orjson.loads(f.read())
     df = process_records(data)
     subset = [item for item in df.columns if item not in UNHASHABLE_COLUMNS]
@@ -24,6 +24,7 @@ def __main__():
     df = df[df.subject_id != "7789"]
     # df.to_csv("out.csv", index=False)
     print(df)
+    df.to_csv(f"data/participant_all.csv", index=False)
     df_list = [pd.DataFrame(i) for i in df.groupby(df.subject_id.values).agg(list).to_dict('records')]
     print(df.subject_id.values)
     for i in range(len(df_list)):
